@@ -31,10 +31,18 @@ class Doctrine extends \lithium\console\Command {
             $path . 'lib'
         )));
 
-        require_once LITHIUM_APP_PATH . '/config/bootstrap/libraries.php';
-        require_once LITHIUM_APP_PATH . '/config/bootstrap/connections.php';
+        $libraries_config = LITHIUM_APP_PATH . '/config/bootstrap/libraries.php';
+        $connections_config = LITHIUM_APP_PATH . '/config/bootstrap/connections.php';
 
-        $connection = \lithium\data\Connections::get('default');
+        require_once $libraries_config;
+        require_once $connections_config;
+
+        $conn_name = !empty($this->request->params['conn']) ? $this->request->params['conn'] : 'default';
+        $connection = \lithium\data\Connections::get($conn_name);
+
+        if (empty($connection)) {
+            $this->stop(1, sprintf('connection "%s" is not configured in %s', $conn_name, $connections_config));
+        }
 
         $loader = new \Doctrine\Common\ClassLoader('Doctrine\DBAL\Migrations', $plugin_path . '/_source/migrations/lib');
         $loader->register();
@@ -48,7 +56,6 @@ class Doctrine extends \lithium\console\Command {
             'em' => new \Doctrine\ORM\Tools\Console\Helper\EntityManagerHelper($em),
             'dialog' => new \Symfony\Component\Console\Helper\DialogHelper()
         ));
-
 
         $cli = new \Symfony\Component\Console\Application('Doctrine Command Line Interface', \Doctrine\ORM\Version::VERSION);
         $cli->setCatchExceptions(true);
